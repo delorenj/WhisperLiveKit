@@ -154,7 +154,25 @@ class SimulStreamingOnlineProcessor:
         Returns a tuple: (list of committed ASRToken objects, float representing the audio processed up to time).
         """
         try:
-            tokens, generation_progress = self.model.infer(is_last=is_last)
+            logger.debug(
+                "SimulStreaming infer call: is_last=%s pending_audio=%.2fs",
+                is_last,
+                self.end - self.global_time_offset,
+            )
+            result = self.model.infer(is_last=is_last)
+            if not isinstance(result, tuple) or len(result) != 2:
+                logger.error(
+                    "SimulStreaming infer returned unexpected payload: %r",
+                    result,
+                )
+                return [], self.end
+
+            tokens, generation_progress = result
+            logger.debug(
+                "SimulStreaming infer output: tokens=%d progress_entries=%d",
+                len(tokens) if tokens else 0,
+                len(generation_progress) if generation_progress else 0,
+            )
             ts_words = self.timestamped_text(tokens, generation_progress)
             
             new_tokens = []

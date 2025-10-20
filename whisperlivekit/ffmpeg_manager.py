@@ -5,6 +5,7 @@ from typing import Optional, Callable
 import contextlib
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 logging.basicConfig(level=logging.INFO)
 
 ERROR_INSTALL_INSTRUCTIONS = """
@@ -59,6 +60,9 @@ class FFmpegManager:
                 "ffmpeg",
                 "-hide_banner",
                 "-loglevel", "error",
+                "-f", "s16le",
+                "-ac", str(self.channels),
+                "-ar", str(self.sample_rate),
                 "-i", "pipe:0",
                 "-f", "s16le",
                 "-acodec", "pcm_s16le",
@@ -66,6 +70,8 @@ class FFmpegManager:
                 "-ar", str(self.sample_rate),
                 "pipe:1"
             ]
+
+            logger.info("Starting FFmpeg with command: %s", " ".join(cmd))
 
             self.process = await asyncio.create_subprocess_exec(
                 *cmd,
@@ -186,7 +192,7 @@ class FFmpegManager:
                 line = await self.process.stderr.readline()
                 if not line:
                     break
-                logger.debug(f"FFmpeg stderr: {line.decode(errors='ignore').strip()}")
+                logger.info(f"FFmpeg stderr: {line.decode(errors='ignore').strip()}")
         except asyncio.CancelledError:
             logger.info("FFmpeg stderr drain task cancelled.")
         except Exception as e:

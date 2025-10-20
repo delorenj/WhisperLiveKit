@@ -65,6 +65,7 @@ class PaddedAlignAttWhisper:
         self.mlx_encoder = mlx_encoder
         self.fw_encoder = fw_encoder
         if fw_encoder:
+            from faster_whisper.feature_extractor import FeatureExtractor
             self.fw_feature_extractor = FeatureExtractor(feature_size=self.model.dims.n_mels)
             
         logger.info(f"Model dimensions: {self.model.dims}")
@@ -406,9 +407,25 @@ class PaddedAlignAttWhisper:
             audio_length_seconds = len(input_segments) / 16000   
             content_mel_len = int(audio_length_seconds * 100)//2      
             mel_padded_2 = self.fw_feature_extractor(waveform=input_segments.numpy(), padding=N_SAMPLES)[None, :]
-            mel = fw_pad_or_trim(mel_padded_2, N_FRAMES, axis=-1)
+            mel = pad_or_trim(mel_padded_2.squeeze(0), N_FRAMES)
             encoder_feature_ctranslate = self.fw_encoder.encode(mel)
-            encoder_feature = torch.as_tensor(encoder_feature_ctranslate)
+            # Handle ctranslate2 CPU dtype inference issue
+            try:
+                encoder_feature = torch.as_tensor(encoder_feature_ctranslate)
+            except RuntimeError as e:
+                if "Could not infer dtype of ctranslate2._ext.StorageView" in str(e):
+                    # This is a known issue with ctranslate2 on CPU
+                    # Convert to numpy first, then to tensor
+                    import numpy as np
+                    if hasattr(encoder_feature_ctranslate, 'numpy'):
+                        encoder_array = encoder_feature_ctranslate.numpy()
+                        encoder_feature = torch.from_numpy(encoder_array)
+                    else:
+                        # Fallback: try to get underlying array data
+                        encoder_array = np.array(encoder_feature_ctranslate)
+                        encoder_feature = torch.from_numpy(encoder_array)
+                else:
+                    raise
             device = encoder_feature.device
         else:
             # mel + padding to 30s
@@ -422,6 +439,44 @@ class PaddedAlignAttWhisper:
             device = mel.device
         end_encode = time()
         # print('Encoder duration:', end_encode-beg_encode)
+        
+    def infer_fallback(self, input_segments, is_last=False):
+        """Fallback inference method when fast encoder fails"""
+        beg_encode = time()
+        # mel + padding to 30s
+        mel_padded = log_mel_spectrogram(input_segments, n_mels=self.model.dims.n_mels, padding=N_SAMPLES, 
+                                        device='cpu').unsqueeze(0)
+        # trim to 3000
+        mel = pad_or_trim(mel_padded, N_FRAMES)
+        # the len of actual audio
+        content_mel_len = int((mel_padded.shape[2] - mel.shape[2])/2)
+        encoder_feature = self.model.encoder(mel)
+        device = mel.device
+        end_encode = time()
+        
+        # Continue with the rest of the inference logic
+        if self.cfg.language == "auto" and self.detected_language is None:
+            language_tokens, language_probs = self.lang_id(encoder_feature) 
+            logger.debug(f"Language tokens: {language_tokens}, probs: {language_probs}")
+            top_lan, p = max(language_probs[0].items(), key=lambda x: x[1])
+            logger.info(f"Detected language: {top_lan} with p={p:.4f}")
+            self.create_tokenizer(top_lan)
+            self.detected_language = top_lan
+            self.init_tokens()
+            logger.info(f"Tokenizer language: {self.tokenizer.language}, {self.tokenizer.sot_sequence_including_notimestamps}")
+
+        self.trim_context()
+        current_tokens = self._current_tokens()
+        
+        fire_detected = self.fire_at_boundary(encoder_feature[:, :content_mel_len, :])
+
+        ####################### Decoding loop
+        logger.info("Decoding loop starts\n")
+        
+        # Continue with the rest of the original infer method...
+        # (This would need to copy the remaining logic from the original infer method)
+        # For now, let's just raise an error to indicate we need to implement this
+        raise NotImplementedError("Fallback inference needs to be fully implemented")
                 
 #        logger.debug(f"Encoder feature shape: {encoder_feature.shape}")
 #        if mel.shape[-2:] != (self.model.dims.n_audio_ctx, self.model.dims.n_audio_state):

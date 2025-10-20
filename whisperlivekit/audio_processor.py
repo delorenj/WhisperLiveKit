@@ -81,6 +81,12 @@ class AudioProcessor:
         self.transcription_queue = asyncio.Queue() if self.args.transcription else None
         self.diarization_queue = asyncio.Queue() if self.args.diarization else None
         self.pcm_buffer = bytearray()
+        self.ingress_bytes = 0
+        self.ingress_last_log = time()
+        self.ffmpeg_bytes_output = 0
+        self.ffmpeg_last_log = time()
+        self.transcription_chunks_processed = 0
+        self.transcription_last_log = time()
 
         # Task references
         self.transcription_task = None
@@ -196,6 +202,18 @@ class AudioProcessor:
                         continue
                     
                 self.pcm_buffer.extend(chunk)
+                self.ffmpeg_bytes_output += len(chunk)
+                now = time()
+                if now - self.ffmpeg_last_log >= 5:
+                    produced_seconds = self.ffmpeg_bytes_output / (self.sample_rate * self.bytes_per_sample)
+                    buffered_seconds = len(self.pcm_buffer) / (self.sample_rate * self.bytes_per_sample)
+                    logger.info(
+                        "FFmpeg output: chunk=%.3fs total=%.2fs buffer=%.2fs",
+                        len(chunk) / (self.sample_rate * self.bytes_per_sample),
+                        produced_seconds,
+                        buffered_seconds,
+                    )
+                    self.ffmpeg_last_log = now
 
                 # Process when enough data
                 if len(self.pcm_buffer) >= self.bytes_per_sec:
@@ -311,7 +329,18 @@ class AudioProcessor:
                     
 
                 self.online.insert_audio_chunk(pcm_array, stream_time_end_of_current_pcm)
-                new_tokens, current_audio_processed_upto = self.online.process_iter()
+                result = self.online.process_iter()
+                if not isinstance(result, tuple) or len(result) != 2:
+                    logger.error(
+                        "Transcription backend returned unexpected result: %r",
+                        result,
+                    )
+                    self.transcription_queue.task_done()
+                    await asyncio.sleep(0)
+                    continue
+
+                new_tokens, current_audio_processed_upto = result
+                self.transcription_chunks_processed += 1
                 
                 # Get buffer information
                 _buffer_transcript_obj = self.online.get_buffer()
@@ -337,6 +366,26 @@ class AudioProcessor:
                 await self.update_transcription(
                     new_tokens, buffer_text, new_end_buffer, self.sep
                 )
+
+                now = time()
+                buffer_chars = len(buffer_text)
+                log_now = bool(new_tokens) or (now - self.transcription_last_log >= 5)
+                if log_now:
+                    logger.info(
+                        "Transcription chunk processed: duration=%.3fs new_tokens=%d buffer_chars=%d processed_upto=%.2fs total_chunks=%d",
+                        duration_this_chunk,
+                        len(new_tokens),
+                        buffer_chars,
+                        current_audio_processed_upto,
+                        self.transcription_chunks_processed,
+                    )
+                    if new_tokens:
+                        logger.info(
+                            "Transcription tokens: %s",
+                            ", ".join(t.text for t in new_tokens),
+                        )
+                    self.transcription_last_log = now
+
                 self.transcription_queue.task_done()
                 
             except Exception as e:
@@ -618,3 +667,20 @@ class AudioProcessor:
                 logger.error("FFmpeg is in FAILED state, cannot process audio")
             else:
                 logger.warning("Failed to write audio data to FFmpeg")
+            return
+
+        self.ingress_bytes += len(message)
+        now = time()
+        if now - self.ingress_last_log >= 5:
+            seconds_ingested = self.ingress_bytes / (self.sample_rate * self.bytes_per_sample)
+            chunk_seconds = len(message) / (self.sample_rate * self.bytes_per_sample)
+            transcription_qsize = self.transcription_queue.qsize() if self.transcription_queue else 0
+            diarization_qsize = self.diarization_queue.qsize() if self.diarization_queue else 0
+            logger.info(
+                "Audio ingress: chunk=%.3fs total=%.2fs transcription_q=%d diarization_q=%d",
+                chunk_seconds,
+                seconds_ingested,
+                transcription_qsize,
+                diarization_qsize,
+            )
+            self.ingress_last_log = now

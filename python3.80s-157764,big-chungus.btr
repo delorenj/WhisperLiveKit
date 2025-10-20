@@ -1,0 +1,14 @@
+
+python3:157764 terminated with signal 6 at PC=7c1372ca49bc SP=7c1158bba890.  Backtrace:
+/lib/x86_64-linux-gnu/libc.so.6(pthread_kill+0x11c) [0x7c1372ca49bc]
+/lib/x86_64-linux-gnu/libc.so.6(gsignal+0x1e) [0x7c1372c4579e]
+/lib/x86_64-linux-gnu/libc.so.6(abort+0x2c) [0x7c1372c288cd]
+/home/delorenj/code/utils/dictation/WhisperLiveKit/.venv/lib/python3.10/site-packages/ctranslate2/../ctranslate2.libs/libcudnn-74a4c495.so.9.1.0(cudnnCreateTensorDescriptor+0x75) [0x7c11fe0060a5]
+/home/delorenj/code/utils/dictation/WhisperLiveKit/.venv/lib/python3.10/site-packages/ctranslate2/../ctranslate2.libs/libctranslate2-c75cca97.so.4.6.0(_ZNK11ctranslate23ops6Conv1D7computeILNS_6DeviceE1EN10half_float4halfEEEvRKNS_11StorageViewES8_PS7_RS6_S9_+0xe3) [0x7c11fec15243]
+/home/delorenj/code/utils/dictation/WhisperLiveKit/.venv/lib/python3.10/site-packages/ctranslate2/../ctranslate2.libs/libctranslate2-c75cca97.so.4.6.0(_ZN11ctranslate26layers14WhisperEncoderclERKNS_11StorageViewERS2_+0xc9) [0x7c11fea89989]
+/home/delorenj/code/utils/dictation/WhisperLiveKit/.venv/lib/python3.10/site-packages/ctranslate2/../ctranslate2.libs/libctranslate2-c75cca97.so.4.6.0(_ZN11ctranslate26models14WhisperReplica6encodeENS_11StorageViewEb+0xa9) [0x7c11feae7309]
+/home/delorenj/code/utils/dictation/WhisperLiveKit/.venv/lib/python3.10/site-packages/ctranslate2/../ctranslate2.libs/libctranslate2-c75cca97.so.4.6.0(+0x2e8c6c) [0x7c11feae8c6c]
+/home/delorenj/code/utils/dictation/WhisperLiveKit/.venv/lib/python3.10/site-packages/ctranslate2/../ctranslate2.libs/libctranslate2-c75cca97.so.4.6.0(_ZN11ctranslate26Worker3runERNS_8JobQueueE+0x84) [0x7c11feb3e384]
+/home/delorenj/code/utils/dictation/WhisperLiveKit/.venv/lib/python3.10/site-packages/ctranslate2/../ctranslate2.libs/libctranslate2-c75cca97.so.4.6.0(+0x2f45680) [0x7c1201745680]
+/lib/x86_64-linux-gnu/libc.so.6(+0xa27f1) [0x7c1372ca27f1]
+/lib/x86_64-linux-gnu/libc.so.6(+0x133b5c) [0x7c1372d33b5c]
