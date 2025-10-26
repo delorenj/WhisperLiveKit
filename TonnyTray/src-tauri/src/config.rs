@@ -282,12 +282,14 @@ impl Config {
             n8n: N8nConfig {
                 webhook_url: settings.n8n_webhook_url.clone(),
                 enabled: settings.n8n_enabled,
+                webhook_url_configured: !settings.n8n_webhook_url.is_empty(),
             },
             elevenlabs: ElevenLabsConfig {
                 api_key: settings.elevenlabs_api_key.clone(),
                 voice_id: settings.elevenlabs_voice_id.clone(),
                 enabled: settings.elevenlabs_enabled,
                 response_mode: settings.response_mode.clone(),
+                api_key_configured: !settings.elevenlabs_api_key.is_empty(),
             },
             profiles,
             audio: AudioConfig {

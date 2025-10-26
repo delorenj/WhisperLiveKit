@@ -14,7 +14,7 @@ import {
   AccessTime,
 } from '@mui/icons-material';
 import { useAppStore } from '@hooks/useTauriState';
-import { formatNumber, formatPercentage, formatUptime, formatDurationMs } from '@utils/formatters';
+import { formatNumber, formatUptime, formatDurationMs } from '@utils/formatters';
 
 /**
  * Animated counter component

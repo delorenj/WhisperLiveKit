@@ -88,12 +88,24 @@ pub enum ResponseMode {
     Both,
 }
 
+impl Default for ResponseMode {
+    fn default() -> Self {
+        ResponseMode::TextOnly
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ConfirmationMode {
     Silent,
     Visual,
     Audio,
+}
+
+impl Default for ConfirmationMode {
+    fn default() -> Self {
+        ConfirmationMode::Visual
+    }
 }
 
 impl Default for AppSettings {

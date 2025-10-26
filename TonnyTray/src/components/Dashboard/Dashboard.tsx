@@ -3,7 +3,7 @@
  * Shows recording status, last transcription, and quick controls
  */
 
-import { Box, Container, Paper, Typography, Grid } from '@mui/material';
+import { Box, Container, Grid } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import StatusPanel from './StatusPanel';
 import TranscriptionPanel from './TranscriptionPanel';

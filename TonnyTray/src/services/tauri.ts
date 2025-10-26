@@ -3,7 +3,7 @@
  * Provides type-safe wrappers for all Tauri commands and event listeners
  */
 
-import { invoke } from '@tauri-apps/api/tauri';
+import { invoke } from '@tauri-apps/api/core';
 import { listen, Event as TauriEvent } from '@tauri-apps/api/event';
 import type {
   AppSettings,
@@ -15,7 +15,6 @@ import type {
   AudioLevel,
   Statistics,
   UserProfile,
-  TauriCommands,
   TauriEvents,
 } from '@types';
 

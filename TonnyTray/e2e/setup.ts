@@ -91,7 +91,7 @@ export async function waitForIPC(
 ): Promise<any> {
   return page.evaluate(
     async ({ command, timeout }) => {
-      const { invoke } = (window as any).__TAURI__.tauri;
+      const { invoke } = (window as any).__TAURI__.core;
       return Promise.race([
         invoke(command),
         new Promise((_, reject) =>
@@ -137,7 +137,7 @@ export async function invokeCommand<T>(
 ): Promise<T> {
   return page.evaluate(
     async ({ command, args }) => {
-      const { invoke } = (window as any).__TAURI__.tauri;
+      const { invoke } = (window as any).__TAURI__.core;
       return invoke(command, args);
     },
     { command, args }

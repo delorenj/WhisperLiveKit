@@ -16,16 +16,16 @@ import {
 } from '@mui/material';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
 import EditIcon from '@mui/icons-material/Edit';
-import { useKeyboardShortcut, useHotkeyCapture } from '@hooks/useKeyboardShortcut';
+import { useHotkeyCapture } from '@hooks/useKeyboardShortcut';
 import { formatHotkey } from '@utils/formatters';
 
 interface KeyboardShortcutPickerProps {
   label: string;
   value: string;
   onChange: (hotkey: string) => void;
-  helperText?: string;
+  helperText?: string | undefined;
   error?: boolean;
-  errorText?: string;
+  errorText?: string | undefined;
 }
 
 export default function KeyboardShortcutPicker({
@@ -37,7 +37,7 @@ export default function KeyboardShortcutPicker({
   errorText,
 }: KeyboardShortcutPickerProps) {
   const { isCapturing, startCapture, stopCapture, capturedKeys } = useHotkeyCapture((hotkey) => {
-    onChange(hotkey);
+    handleChange(hotkey);
   });
 
   const [showConflict, setShowConflict] = useState(false);

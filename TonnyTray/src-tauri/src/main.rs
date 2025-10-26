@@ -14,6 +14,7 @@ mod config;
 mod database;
 mod elevenlabs;
 mod events;
+mod keychain;
 mod process_manager;
 mod state;
 mod tray;
@@ -51,10 +52,13 @@ async fn start_server(
 ) -> Result<String, String> {
     info!("Command: start_server");
 
-    let pm = context.process_manager.lock().await;
-    match pm.start_whisper_server(&context.state).await {
+    // Dereference State to access inner AppContext
+    let ctx = &*context;
+
+    let pm = ctx.process_manager.lock().await;
+    match pm.start_whisper_server(&ctx.state).await {
         Ok(pid) => {
-            update_tray_menu(&app, &context.state);
+            update_tray_menu(&app, &ctx.state);
             Ok(format!("Server started with PID: {}", pid))
         }
         Err(e) => {

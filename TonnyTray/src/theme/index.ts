@@ -3,7 +3,8 @@
  * Supports light, dark, and system-based theme switching
  */
 
-import { createTheme, ThemeOptions, PaletteMode } from '@mui/material/styles';
+import { createTheme, ThemeOptions } from '@mui/material/styles';
+import type { PaletteMode } from '@mui/material';
 import { useMemo } from 'react';
 import { useAppStore } from '@hooks/useTauriState';
 

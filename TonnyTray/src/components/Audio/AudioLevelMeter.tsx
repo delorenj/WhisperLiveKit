@@ -16,7 +16,6 @@ interface AudioLevelMeterProps {
   showDbValue?: boolean;
   height?: number;
   minDb?: number;
-  maxDb?: number;
 }
 
 export default function AudioLevelMeter({
@@ -24,7 +23,6 @@ export default function AudioLevelMeter({
   showDbValue = false,
   height = 200,
   minDb = -60,
-  maxDb = 0,
 }: AudioLevelMeterProps) {
   const theme = useTheme();
   const { audioLevel, recording } = useAppStore();

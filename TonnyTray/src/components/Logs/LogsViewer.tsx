@@ -53,27 +53,11 @@ function getLevelColor(level: LogEntry['level']): string {
   }
 }
 
-function getLevelIcon(level: LogEntry['level']): string {
-  switch (level) {
-    case 'debug':
-      return '🐛';
-    case 'info':
-      return 'ℹ️';
-    case 'warn':
-      return '⚠️';
-    case 'error':
-      return '❌';
-    default:
-      return '📝';
-  }
-}
-
 export default function LogsViewer() {
   const { logs } = useAppStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [levelFilter, setLevelFilter] = useState<LogLevel>('all');
   const [componentFilter, setComponentFilter] = useState<string>('all');
-  const [autoRefresh, setAutoRefresh] = useState(true);
   const { showConfirm, dialog } = useConfirmDialog();
   const { showSuccess, showError } = useNotification();
 
@@ -115,7 +99,7 @@ export default function LogsViewer() {
   }, [logs, levelFilter, componentFilter, debouncedSearch]);
 
   const handleClearLogs = async () => {
-    const confirmed = await showConfirm({
+    await showConfirm({
       title: 'Clear All Logs?',
       message: 'This will permanently delete all log entries. This action cannot be undone.',
       severity: 'warning',
@@ -144,7 +128,7 @@ export default function LogsViewer() {
 
   const handleRefresh = async () => {
     try {
-      const newLogs = await tauriApi.logs.get();
+      await tauriApi.logs.get();
       // Store update happens through events
       showSuccess('Logs refreshed');
     } catch (error) {

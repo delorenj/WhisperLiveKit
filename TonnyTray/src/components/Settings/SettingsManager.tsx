@@ -21,7 +21,6 @@ import { useSettings } from '@hooks/useTauriState';
 import { useConfirmDialog } from '@components/Common/ConfirmDialog';
 import { useNotification } from '@hooks/useNotification';
 import { tauriApi } from '@services/tauri';
-import { formatDateTime } from '@utils/formatters';
 
 export default function SettingsManager() {
   const { settings, resetSettings } = useSettings();
@@ -50,7 +49,7 @@ export default function SettingsManager() {
    * Import settings from JSON file
    */
   const handleImport = async () => {
-    const confirmed = await showConfirm({
+    await showConfirm({
       title: 'Import Settings?',
       message:
         'This will replace your current settings with those from the file. Your current settings will be lost unless you export them first.',
@@ -61,7 +60,7 @@ export default function SettingsManager() {
         setImporting(true);
         try {
           // Use Tauri's file dialog to select file
-          const path = await tauriApi.settings.import('');
+          await tauriApi.settings.import('');
           showSuccess('Settings imported successfully');
           showInfo('Please restart the application for all changes to take effect');
         } catch (error) {

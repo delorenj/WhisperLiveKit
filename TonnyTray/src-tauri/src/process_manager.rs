@@ -1,12 +1,14 @@
+use tauri::Emitter;
 use anyhow::{Context, Result};
 use log::{debug, error, info, warn};
 use nix::sys::signal::{self, Signal};
 use nix::unistd::Pid;
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
+use std::process::Stdio;
+use tokio::process::{Child, Command};
 use std::sync::Arc;
 use std::time::Instant;
-use sysinfo::{Pid as SysPid, ProcessExt, System, SystemExt};
+use sysinfo::{Pid as SysPid, System};
 use tauri::{AppHandle, Manager};
 use tokio::sync::{Mutex as TokioMutex, RwLock};
 use tokio::time::{sleep, Duration};
@@ -242,7 +244,7 @@ impl ProcessSupervisor {
                 message,
                 pid,
             );
-            if let Err(e) = app.emit_all("status_update", &event) {
+            if let Err(e) = app.emit("status_update", &event) {
                 error!("Failed to emit status_update event: {}", e);
             }
         }
@@ -258,7 +260,7 @@ impl ProcessSupervisor {
                 details,
                 true,
             );
-            if let Err(e) = app.emit_all("error", &event) {
+            if let Err(e) = app.emit("error", &event) {
                 error!("Failed to emit error event: {}", e);
             }
         }
@@ -269,7 +271,7 @@ impl ProcessSupervisor {
         if let Some(ref app) = self.app_handle {
             let event = NotificationEvent::info(title, message)
                 .with_source(NotificationSource::WhisperServer);
-            if let Err(e) = app.emit_all("notification", &event) {
+            if let Err(e) = app.emit("notification", &event) {
                 error!("Failed to emit notification event: {}", e);
             }
         }
@@ -328,7 +330,7 @@ impl ProcessSupervisor {
         let child = cmd
             .spawn()
             .context("Failed to spawn WhisperLiveKit server")?;
-        let pid = child.id();
+        let pid = child.id().context("Failed to get process ID")?;
 
         // Store process handle
         {
@@ -429,12 +431,15 @@ impl ProcessSupervisor {
         let proc = self.process.lock().await;
         if let Some(child) = proc.as_ref() {
             // Check via sysinfo
-            let pid = child.id();
-            drop(proc);
+            if let Some(pid) = child.id() {
+                drop(proc);
 
-            let mut system = self.system.lock().await;
-            system.refresh_process(SysPid::from(pid as usize));
-            system.process(SysPid::from(pid as usize)).is_some()
+                let mut system = self.system.lock().await;
+                system.refresh_process(SysPid::from(pid as usize));
+                system.process(SysPid::from(pid as usize)).is_some()
+            } else {
+                false
+            }
         } else {
             false
         }
@@ -476,7 +481,7 @@ impl ProcessSupervisor {
 
         let mut proc = self.process.lock().await;
         if let Some(mut child) = proc.take() {
-            let pid = child.id();
+            let pid = child.id().context("Failed to get process ID")?;
 
             // Try graceful shutdown first (SIGTERM)
             #[cfg(unix)]
@@ -688,7 +693,7 @@ impl ProcessManager {
                 message,
                 pid,
             );
-            if let Err(e) = app.emit_all("status_update", &event) {
+            if let Err(e) = app.emit("status_update", &event) {
                 error!("Failed to emit status_update event: {}", e);
             }
         }
@@ -743,7 +748,7 @@ impl ProcessManager {
 
         // Start process
         let child = cmd.spawn().context("Failed to spawn auto-type client")?;
-        let pid = child.id();
+        let pid = child.id().context("Failed to get process ID")?;
 
         // Store process handle
         {

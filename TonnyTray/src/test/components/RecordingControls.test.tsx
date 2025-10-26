@@ -2,10 +2,11 @@
  * Tests for RecordingControls component
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { RecordingControls } from '@components/Dashboard/RecordingControls';
+import RecordingControls from '@components/Dashboard/RecordingControls';
 import { useRecordingControls } from '@hooks/useTauriState';
+import { RecordingState } from '@types';
 
 // Mock hooks
 vi.mock('@hooks/useTauriState');
@@ -20,7 +21,7 @@ describe('RecordingControls', () => {
     vi.clearAllMocks();
 
     vi.mocked(useRecordingControls).mockReturnValue({
-      recording: 'idle',
+      recording: RecordingState.Idle,
       startRecording: mockStartRecording,
       stopRecording: mockStopRecording,
       pauseRecording: mockPauseRecording,
@@ -50,7 +51,7 @@ describe('RecordingControls', () => {
 
   it('should render stop button when recording', () => {
     vi.mocked(useRecordingControls).mockReturnValue({
-      recording: 'listening',
+      recording: RecordingState.Listening,
       startRecording: mockStartRecording,
       stopRecording: mockStopRecording,
       pauseRecording: mockPauseRecording,
@@ -69,7 +70,7 @@ describe('RecordingControls', () => {
     mockStopRecording.mockResolvedValue(undefined);
 
     vi.mocked(useRecordingControls).mockReturnValue({
-      recording: 'listening',
+      recording: RecordingState.Listening,
       startRecording: mockStartRecording,
       stopRecording: mockStopRecording,
       pauseRecording: mockPauseRecording,
@@ -87,7 +88,7 @@ describe('RecordingControls', () => {
 
   it('should show processing state', () => {
     vi.mocked(useRecordingControls).mockReturnValue({
-      recording: 'processing',
+      recording: RecordingState.Processing,
       startRecording: mockStartRecording,
       stopRecording: mockStopRecording,
       pauseRecording: mockPauseRecording,
@@ -102,7 +103,7 @@ describe('RecordingControls', () => {
 
   it('should show error state', () => {
     vi.mocked(useRecordingControls).mockReturnValue({
-      recording: 'error',
+      recording: RecordingState.Error,
       startRecording: mockStartRecording,
       stopRecording: mockStopRecording,
       pauseRecording: mockPauseRecording,

@@ -3,7 +3,7 @@
  * Handles keyboard shortcut registration and detection
  */
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
 
 interface KeyboardShortcutOptions {
   enabled?: boolean;
@@ -21,9 +21,13 @@ function parseHotkey(hotkey: string): {
   alt: boolean;
   meta: boolean;
 } {
-  const parts = hotkey.toLowerCase().split('+').map((s) => s.trim());
-  const modifiers = new Set(parts.slice(0, -1));
-  const key = parts[parts.length - 1];
+  const parts = hotkey
+    .split('+')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  const key = (parts.pop() ?? '').toLowerCase();
+  const modifiers = new Set(parts.map((part) => part.toLowerCase()));
 
   return {
     key,
@@ -102,8 +106,8 @@ export function useHotkeyCapture(
   stopCapture: () => void;
   capturedKeys: string[];
 } {
-  const [isCapturing, setIsCapturing] = React.useState(false);
-  const [capturedKeys, setCapturedKeys] = React.useState<string[]>([]);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [capturedKeys, setCapturedKeys] = useState<string[]>([]);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {

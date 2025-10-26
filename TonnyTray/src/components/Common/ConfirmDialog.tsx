@@ -123,7 +123,7 @@ export function useConfirmDialog() {
     severity: ConfirmDialogSeverity;
     confirmText: string;
     cancelText: string;
-    confirmColor: ConfirmDialogProps['confirmColor'];
+    confirmColor: NonNullable<ConfirmDialogProps['confirmColor']>;
     onConfirm: () => void | Promise<void>;
   }>({
     open: false,

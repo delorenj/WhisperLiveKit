@@ -1,3 +1,4 @@
+use tauri::Emitter;
 use anyhow::{Context, Result};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, Host, Stream, StreamConfig};
@@ -15,7 +16,6 @@ use crate::events::AudioLevelEvent;
 pub struct AudioManager {
     host: Host,
     input_device: Option<Device>,
-    output_stream: Option<(OutputStream, OutputStreamHandle)>,
     recording_stream: Arc<Mutex<Option<Stream>>>,
     app_handle: Arc<RwLock<Option<AppHandle>>>,
     last_event_time: Arc<RwLock<Instant>>,
@@ -28,15 +28,9 @@ impl AudioManager {
         let host = cpal::default_host();
         info!("Audio host: {}", host.id().name());
 
-        // Initialize output stream for playback
-        let output_stream = OutputStream::try_default()
-            .ok()
-            .map(|(stream, handle)| (stream, handle));
-
         Ok(Self {
             host,
             input_device: None,
-            output_stream,
             recording_stream: Arc::new(Mutex::new(None)),
             app_handle: Arc::new(RwLock::new(None)),
             last_event_time: Arc::new(RwLock::new(Instant::now())),
@@ -74,7 +68,7 @@ impl AudioManager {
         if should_emit {
             if let Some(ref app) = *self.app_handle.read().await {
                 let event = AudioLevelEvent::new(level, peak, is_speaking);
-                if let Err(e) = app.emit_all("audio_level", &event) {
+                if let Err(e) = app.emit("audio_level", &event) {
                     error!("Failed to emit audio_level event: {}", e);
                 }
             }
@@ -241,7 +235,7 @@ impl AudioManager {
                             if let Ok(handle_guard) = app_handle.try_read() {
                                 if let Some(ref app) = *handle_guard {
                                     let event = AudioLevelEvent::new(level, peak, is_speaking);
-                                    let _ = app.emit_all("audio_level", &event);
+                                    let _ = app.emit("audio_level", &event);
                                 }
                             }
                         }
@@ -272,17 +266,18 @@ impl AudioManager {
 
     /// Play audio from bytes (MP3, WAV, etc.)
     pub fn play_audio(&self, audio_data: Vec<u8>) -> Result<()> {
-        let (_stream, handle) = self
-            .output_stream
-            .as_ref()
-            .context("No output stream available")?;
+        // Create output stream fresh for playback (avoids thread safety issues)
+        let (_stream, handle) = OutputStream::try_default()
+            .context("Failed to create output stream")?;
 
         let cursor = Cursor::new(audio_data);
         let source = rodio::Decoder::new(cursor).context("Failed to decode audio")?;
 
-        let sink = Sink::try_new(handle).context("Failed to create audio sink")?;
+        let sink = Sink::try_new(&handle).context("Failed to create audio sink")?;
         sink.append(source);
-        sink.detach();
+
+        // Block until playback finishes
+        sink.sleep_until_end();
 
         info!("Playing audio");
         Ok(())

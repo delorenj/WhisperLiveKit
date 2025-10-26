@@ -36,7 +36,8 @@
       "@theme/*": ["./src/theme/*"],
       "@utils/*": ["./src/utils/*"],
       "@contexts/*": ["./src/contexts/*"],
-      "@services/*": ["./src/services/*"]
+      "@services/*": ["./src/services/*"],
+      "@test/*": ["./src/test/*"]
     }
   },
   "include": ["src"],

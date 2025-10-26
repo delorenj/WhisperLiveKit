@@ -3,7 +3,7 @@
  * Configures test environment and global mocks
  */
 
-import { expect, afterEach, vi } from 'vitest';
+import { afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
@@ -19,7 +19,7 @@ const mockListen = vi.fn(() => Promise.resolve(() => {}));
 global.window = Object.create(window);
 Object.defineProperty(window, '__TAURI__', {
   value: {
-    tauri: {
+    core: {
       invoke: mockInvoke,
     },
     event: {

@@ -3,7 +3,7 @@
  * Model selection, language, microphone, and voice activation settings
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Typography,

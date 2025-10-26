@@ -1,3 +1,4 @@
+use tauri::Emitter;
 use anyhow::{Context, Result};
 use futures_util::{SinkExt, StreamExt};
 use log::{debug, error, info, warn};
@@ -49,7 +50,7 @@ impl WebSocketClient {
     fn emit_transcription(&self, text: String, is_final: bool, speaker: Option<String>, confidence: Option<f32>) {
         if let Some(ref app) = self.app_handle {
             let event = TranscriptionEvent::with_details(text, is_final, speaker, confidence);
-            if let Err(e) = app.emit_all("transcription", &event) {
+            if let Err(e) = app.emit("transcription", &event) {
                 error!("Failed to emit transcription event: {}", e);
             }
         }
@@ -65,7 +66,7 @@ impl WebSocketClient {
                 event = event.with_action_data(data);
             }
 
-            if let Err(e) = app.emit_all("notification", &event) {
+            if let Err(e) = app.emit("notification", &event) {
                 error!("Failed to emit notification event: {}", e);
             }
         }
@@ -81,7 +82,7 @@ impl WebSocketClient {
                 details,
                 true,
             );
-            if let Err(e) = app.emit_all("error", &event) {
+            if let Err(e) = app.emit("error", &event) {
                 error!("Failed to emit error event: {}", e);
             }
         }

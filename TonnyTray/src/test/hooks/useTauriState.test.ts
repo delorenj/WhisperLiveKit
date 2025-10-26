@@ -3,23 +3,15 @@
  */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import {
-  useAppStore,
-  useTauriState,
-  useRecordingControls,
-  useSettings,
-  useProfiles,
-  useServerControls,
-} from '@hooks/useTauriState';
+import { useAppStore, useTauriState, useRecordingControls, useSettings, useServerControls } from '@hooks/useTauriState';
 import { tauriApi } from '@services/tauri';
-import { ServerStatus } from '@types';
-import type {
-  AppSettings,
-  UserProfile,
+import {
+  ServerStatus,
   RecordingState,
-  AudioDevice,
-  Statistics,
+  DEFAULT_SETTINGS,
+  DEFAULT_GUEST_PROFILE,
 } from '@types';
+import type { AppSettings, UserProfile, AudioDevice, Statistics, Transcription, Notification } from '@types';
 
 // Mock Tauri API
 vi.mock('@services/tauri', () => ({
@@ -67,11 +59,52 @@ vi.mock('@services/tauri', () => ({
   },
 }));
 
+const cloneSettings = (): AppSettings =>
+  JSON.parse(JSON.stringify(DEFAULT_SETTINGS)) as AppSettings;
+
+const cloneProfile = (overrides: Partial<UserProfile> = {}): UserProfile => ({
+  ...DEFAULT_GUEST_PROFILE,
+  settings: { ...DEFAULT_GUEST_PROFILE.settings },
+  allowedCommands: [...DEFAULT_GUEST_PROFILE.allowedCommands],
+  blockedCommands: [...DEFAULT_GUEST_PROFILE.blockedCommands],
+  usageStats: { ...DEFAULT_GUEST_PROFILE.usageStats },
+  ...overrides,
+});
+
+const createTranscription = (overrides: Partial<Transcription> = {}): Transcription => ({
+  id: 'transcription-id',
+  timestamp: new Date().toISOString(),
+  text: 'Transcription text',
+  confidence: 0.95,
+  duration: 1.2,
+  profileId: DEFAULT_GUEST_PROFILE.id,
+  success: true,
+  ...overrides,
+});
+
+const createNotification = (overrides: Partial<Notification> = {}): Notification => ({
+  id: 'notification-id',
+  type: 'info',
+  title: 'Notification',
+  message: 'Notification message',
+  timestamp: new Date().toISOString(),
+  ...overrides,
+});
+
+const createDevice = (overrides: Partial<AudioDevice> = {}): AudioDevice => ({
+  id: 'device-id',
+  name: 'Default Microphone',
+  isDefault: false,
+  sampleRate: 44100,
+  channels: 2,
+  ...overrides,
+});
+
 describe('useAppStore', () => {
   beforeEach(() => {
     // Reset store to initial state
     useAppStore.setState({
-      recording: 'idle',
+      recording: RecordingState.Idle,
       audioLevel: null,
       connectionStatus: {
         server: ServerStatus.Stopped,
@@ -81,15 +114,9 @@ describe('useAppStore', () => {
       },
       serverStatus: ServerStatus.Stopped,
       lastTranscription: null,
-      activeProfile: {
-        id: 'guest',
-        name: 'Guest',
-        permissions: 'user',
-        voiceId: null,
-        allowedCommands: [],
-      },
-      profiles: [],
-      settings: {} as AppSettings,
+      activeProfile: cloneProfile(),
+      profiles: [cloneProfile()],
+      settings: cloneSettings(),
       settingsOpen: false,
       dashboardOpen: false,
       quickActions: [],
@@ -111,7 +138,7 @@ describe('useAppStore', () => {
   it('should initialize with default state', () => {
     const { result } = renderHook(() => useAppStore());
 
-    expect(result.current.recording).toBe('idle');
+    expect(result.current.recording).toBe(RecordingState.Idle);
     expect(result.current.serverStatus).toBe(ServerStatus.Stopped);
     expect(result.current.transcriptions).toEqual([]);
     expect(result.current.logs).toEqual([]);
@@ -121,10 +148,10 @@ describe('useAppStore', () => {
     const { result } = renderHook(() => useAppStore());
 
     act(() => {
-      result.current.setRecording('listening' as RecordingState);
+      result.current.setRecording(RecordingState.Listening);
     });
 
-    expect(result.current.recording).toBe('listening');
+    expect(result.current.recording).toBe(RecordingState.Listening);
   });
 
   it('should update server status and connection status', () => {
@@ -144,38 +171,32 @@ describe('useAppStore', () => {
     act(() => {
       // Add 60 transcriptions
       for (let i = 0; i < 60; i++) {
-        result.current.addTranscription({
-          id: `trans-${i}`,
-          timestamp: new Date().toISOString(),
-          text: `Transcription ${i}`,
-          success: true,
-          profileId: 'guest',
-        });
+        result.current.addTranscription(
+          createTranscription({
+            id: `trans-${i}`,
+            text: `Transcription ${i}`,
+          })
+        );
       }
     });
 
     // Should keep only 50 most recent
     expect(result.current.transcriptions.length).toBe(50);
-    expect(result.current.transcriptions[0].text).toBe('Transcription 59');
+    expect(result.current.transcriptions[0]?.text).toBe('Transcription 59');
     expect(result.current.lastTranscription?.text).toBe('Transcription 59');
   });
 
   it('should add and remove notifications', () => {
     const { result } = renderHook(() => useAppStore());
 
-    const notification = {
-      id: 'notif-1',
-      type: 'info' as const,
-      message: 'Test notification',
-      timestamp: new Date().toISOString(),
-    };
+    const notification = createNotification({ id: 'notif-1', message: 'Test notification' });
 
     act(() => {
       result.current.addNotification(notification);
     });
 
     expect(result.current.notifications.length).toBe(1);
-    expect(result.current.notifications[0].message).toBe('Test notification');
+    expect(result.current.notifications[0]?.message).toBe('Test notification');
 
     act(() => {
       result.current.removeNotification('notif-1');
@@ -207,25 +228,25 @@ describe('useAppStore', () => {
     const { result } = renderHook(() => useAppStore());
 
     const profiles: UserProfile[] = [
-      {
+      cloneProfile({
         id: 'admin',
         name: 'Admin',
         permissions: 'admin',
-        voiceId: null,
         allowedCommands: [],
-      },
-      {
+        blockedCommands: [],
+      }),
+      cloneProfile({
         id: 'user',
         name: 'User',
         permissions: 'user',
-        voiceId: 'voice123',
         allowedCommands: ['read'],
-      },
+        blockedCommands: [],
+      }),
     ];
 
     act(() => {
       result.current.setProfiles(profiles);
-      result.current.setActiveProfile(profiles[0]);
+      result.current.setActiveProfile(profiles[0]!);
     });
 
     expect(result.current.profiles.length).toBe(2);
@@ -236,8 +257,8 @@ describe('useAppStore', () => {
     const { result } = renderHook(() => useAppStore());
 
     const devices: AudioDevice[] = [
-      { id: 'device-1', name: 'Microphone 1', isDefault: true },
-      { id: 'device-2', name: 'Microphone 2', isDefault: false },
+      createDevice({ id: 'device-1', name: 'Microphone 1', isDefault: true }),
+      createDevice({ id: 'device-2', name: 'Microphone 2', isDefault: false }),
     ];
 
     act(() => {
@@ -245,57 +266,35 @@ describe('useAppStore', () => {
     });
 
     expect(result.current.availableDevices.length).toBe(2);
-    expect(result.current.availableDevices[0].isDefault).toBe(true);
+    expect(result.current.availableDevices[0]?.isDefault).toBe(true);
   });
 });
 
 describe('useTauriState', () => {
-  const mockSettings: AppSettings = {
-    server: {
-      host: 'localhost',
-      port: 8888,
-      model: 'base',
-      language: 'en',
-      autoStart: true,
-      autoRestart: true,
-    },
-    audio: {
-      device: null,
-      pushToTalk: false,
-      voiceActivation: true,
-      threshold: 0.02,
-    },
-    typing: {
-      enabled: true,
-      speed: 50,
-    },
-    integration: {
-      n8nEnabled: false,
-      n8nWebhookUrl: '',
-      elevenLabsEnabled: false,
-      elevenLabsApiKey: '',
-      elevenLabsVoiceId: '',
-      responseMode: 'text',
-    },
-    advanced: {
-      commandPrefix: 'Computer,',
-      confirmationMode: 'visual',
-      maxLogEntries: 1000,
-    },
-  };
+  const mockSettings: AppSettings = (() => {
+    const settings = cloneSettings();
+    settings.voice = { ...settings.voice, model: 'small', language: 'en' };
+    settings.integration = { ...settings.integration, responseMode: 'text' };
+    settings.server = {
+      ...settings.server,
+      url: 'ws://localhost:9000/asr',
+      port: 9000,
+    };
+    return settings;
+  })();
 
   const mockProfiles: UserProfile[] = [
-    {
+    cloneProfile({
       id: 'admin',
       name: 'Admin',
       permissions: 'admin',
-      voiceId: null,
       allowedCommands: [],
-    },
+      blockedCommands: [],
+    }),
   ];
 
   const mockDevices: AudioDevice[] = [
-    { id: 'default', name: 'Default Microphone', isDefault: true },
+    createDevice({ id: 'default', name: 'Default Microphone', isDefault: true }),
   ];
 
   const mockStatistics: Statistics = {
@@ -369,14 +368,23 @@ describe('useTauriState', () => {
 describe('useRecordingControls', () => {
   beforeEach(() => {
     useAppStore.setState({
-      recording: 'idle',
-      activeProfile: {
+      recording: RecordingState.Idle,
+      activeProfile: cloneProfile({
         id: 'test-profile',
         name: 'Test',
         permissions: 'admin',
-        voiceId: null,
         allowedCommands: [],
-      },
+        blockedCommands: [],
+      }),
+      profiles: [
+        cloneProfile({
+          id: 'test-profile',
+          name: 'Test',
+          permissions: 'admin',
+          allowedCommands: [],
+          blockedCommands: [],
+        }),
+      ],
     } as any);
   });
 
@@ -390,14 +398,14 @@ describe('useRecordingControls', () => {
     });
 
     expect(tauriApi.recording.start).toHaveBeenCalledWith('test-profile');
-    expect(result.current.recording).toBe('listening');
+    expect(result.current.recording).toBe(RecordingState.Listening);
     expect(result.current.isRecording).toBe(true);
   });
 
   it('should stop recording', async () => {
     vi.mocked(tauriApi.recording.stop).mockResolvedValue(undefined);
 
-    useAppStore.setState({ recording: 'listening' } as any);
+    useAppStore.setState({ recording: RecordingState.Listening } as any);
 
     const { result } = renderHook(() => useRecordingControls());
 
@@ -406,7 +414,7 @@ describe('useRecordingControls', () => {
     });
 
     expect(tauriApi.recording.stop).toHaveBeenCalled();
-    expect(result.current.recording).toBe('idle');
+    expect(result.current.recording).toBe(RecordingState.Idle);
     expect(result.current.isRecording).toBe(false);
   });
 
@@ -421,21 +429,20 @@ describe('useRecordingControls', () => {
       });
     }).rejects.toThrow('Microphone error');
 
-    expect(result.current.recording).toBe('error');
+    expect(result.current.recording).toBe(RecordingState.Error);
   });
 });
 
 describe('useSettings', () => {
-  const mockSettings: AppSettings = {
-    server: {
-      host: 'localhost',
+  const mockSettings: AppSettings = (() => {
+    const settings = cloneSettings();
+    settings.server = {
+      ...settings.server,
+      url: 'ws://localhost:8888/asr',
       port: 8888,
-      model: 'base',
-      language: 'en',
-      autoStart: true,
-      autoRestart: true,
-    },
-  } as AppSettings;
+    };
+    return settings;
+  })();
 
   beforeEach(() => {
     useAppStore.setState({ settings: mockSettings } as any);
