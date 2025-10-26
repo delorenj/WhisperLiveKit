@@ -3,13 +3,13 @@ use anyhow::{Context, Result};
 use log::{debug, error, info, warn};
 use nix::sys::signal::{self, Signal};
 use nix::unistd::Pid;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Stdio;
 use tokio::process::{Child, Command};
 use std::sync::Arc;
 use std::time::Instant;
 use sysinfo::{Pid as SysPid, System};
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 use tokio::sync::{Mutex as TokioMutex, RwLock};
 use tokio::time::{sleep, Duration};
 
@@ -500,7 +500,7 @@ impl ProcessSupervisor {
                     Err(_) => {
                         // Force kill if graceful shutdown failed
                         warn!("Process {} did not exit gracefully, force killing", pid);
-                        if let Err(e) = child.kill() {
+                        if let Err(e) = child.kill().await {
                             error!("Failed to force kill process {}: {}", pid, e);
                         }
                     }
@@ -509,7 +509,7 @@ impl ProcessSupervisor {
 
             #[cfg(not(unix))]
             {
-                if let Err(e) = child.kill() {
+                if let Err(e) = child.kill().await {
                     error!("Failed to kill process {}: {}", pid, e);
                 }
             }
@@ -864,7 +864,7 @@ impl ProcessManager {
                     s.autotype_pid
                 };
 
-                if let Some(pid) = autotype_pid {
+                if let Some(_pid) = autotype_pid {
                     // Simple alive check for auto-type client
                     let proc = autotype_process.lock().await;
                     let is_alive = if proc.is_some() {

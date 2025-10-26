@@ -48,24 +48,42 @@ mod config_tests {
         assert_eq!(config.integrations.n8n.webhook_url, "https://test.n8n.io");
     }
 
-    #[test]
-    fn test_config_save_and_load() {
-        let dir = tempdir().unwrap();
-        let config_path = dir.path().join("test_config.toml");
+use tonnytray::config::{Config, load_or_create_config, get_config_path};
+use tonnytray::state::{AppSettings, UserProfile};
+use tonnytray::config::{Config, load_or_create_config, get_config_path};
+use tonnytray::state::{AppSettings, UserProfile};
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use std::fs;
+use tempfile::tempdir;
 
-        // Create and save config
-        let mut config = Config::default();
-        config.server.model = "large".to_string();
-        config.server.port = 7777;
+#[test]
+fn test_config_save_and_load() {
+    let dir = tempdir().unwrap();
+    let config_path = dir.path().join("config.toml");
+    let mut config = Config::default();
+    config.profiles.push(UserProfile::default());
 
-        config.save(&config_path).unwrap();
-        assert!(config_path.exists());
+    config.save(&config_path).unwrap();
+    let loaded = Config::load(&config_path).unwrap();
 
-        // Load config
-        let loaded = Config::load(&config_path).unwrap();
-        assert_eq!(loaded.server.model, "large");
-        assert_eq!(loaded.server.port, 7777);
-    }
+    assert_eq!(config, loaded);
+}
 
     #[test]
     fn test_config_path_creation() {

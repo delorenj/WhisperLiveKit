@@ -1,17 +1,36 @@
 /// Integration tests for Tauri commands and IPC
 use tonnytray::state::*;
+use tonnytray::state::{    create_state, with_state, AppSettings, AppState, ConfirmationMode, ResponseMode, ServerStatus,    SharedState, TrayState, UserProfile,};
+use tonnytray::state::{
+    create_state, with_state, AppSettings, AppState, ConfirmationMode, ResponseMode, ServerStatus,
+    SharedState, TrayState, UserProfile,
+};
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
+use tonnytray::*;
 use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
 
-#[cfg(test)]
-mod integration_tests {
-    use super::*;
-
-    fn setup_test_context() -> (SharedState, AppSettings) {
-        let settings = AppSettings::default();
-        let state = create_state(settings.clone());
-        (state, settings)
-    }
-
+// Helper to set up a test context
+fn setup_test_context() -> (SharedState, AppSettings) {
+    let settings = AppSettings::default();
+    let state = create_state(settings.clone());
+    (state, settings)
+}
     #[test]
     fn test_state_initialization() {
         let (state, settings) = setup_test_context();

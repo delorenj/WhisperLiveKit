@@ -145,7 +145,7 @@ pub struct TranscriptionEntry {
 }
 
 /// Main application state
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppState {
     pub recording: bool,
     pub server_status: ServerStatus,

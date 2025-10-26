@@ -1,23 +1,37 @@
-// System tray functionality - Requires migration to tauri-plugin-tray for v2
-// TODO: Migrate to tauri-plugin-tray (https://v2.tauri.app/plugin/tray/)
+use tauri::menu::{Menu, MenuItem};
+use tauri::{AppHandle, Manager, Wry};
 
-use log::warn;
-use tauri::AppHandle;
+/// Build the system tray menu
+pub fn build_tray_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
+    let show = MenuItem::with_id(app, "show", "Show", true, None::<&str>)?;
+    let hide = MenuItem::with_id(app, "hide", "Hide", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
 
-use crate::state::{SharedState, TrayState};
-
-/// Build the system tray menu (STUB - requires tauri-plugin-tray for v2)
-pub fn build_tray_menu() -> () {
-    warn!("System tray requires tauri-plugin-tray for Tauri v2 - currently disabled");
-    ()
+    let menu = Menu::new(app)?;
+    menu.append(&show)?;
+    menu.append(&hide)?;
+    menu.append(&quit)?;
+    Ok(menu)
 }
 
-/// Handle system tray events (STUB - requires tauri-plugin-tray for v2)
-pub fn handle_tray_event(_app: &AppHandle, _event: ()) {
-    warn!("System tray requires tauri-plugin-tray for Tauri v2 - currently disabled");
+/// Handle system tray events
+pub fn handle_tray_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
+    match event.id.as_ref() {
+        "show" => {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }
+        "hide" => {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.hide();
+            }
+        }
+        "quit" => {
+            app.exit(0);
+        }
+        _ => {}
+    }
 }
 
-/// Update tray menu based on app state (STUB - requires tauri-plugin-tray for v2)
-pub fn update_tray_menu(_app: &AppHandle, _state: &SharedState) {
-    warn!("System tray requires tauri-plugin-tray for Tauri v2 - currently disabled");
-}

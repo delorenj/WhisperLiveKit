@@ -1,11 +1,11 @@
 use anyhow::{Context, Result};
-use log::{info, warn};
+use crate::state::{AppSettings, ConfirmationMode, ResponseMode, UserProfile};
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::keychain::{ConfigurationStatus, SecretsManager};
-use crate::state::{AppSettings, ConfirmationMode, ResponseMode, UserProfile};
+use crate::keychain::SecretsManager;
 
 /// Configuration file structure matching the PRD example
 #[derive(Debug, Clone, Serialize, Deserialize)]
